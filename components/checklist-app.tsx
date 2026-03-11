@@ -56,6 +56,7 @@ export function ChecklistApp() {
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [administratorDebug, setAdministratorDebug] = useState<string | null>(null);
+  const [confettiBurstKey, setConfettiBurstKey] = useState(0);
 
   const selectedWeekDates = useMemo(
     () => getWeekDatesForSelection(context, selectedWeek),
@@ -80,6 +81,7 @@ export function ChecklistApp() {
   const progress = activeTasks.length
     ? activeTasks.filter((task) => completed[task.id]).length / activeTasks.length
     : 1;
+  const isComplete = progress === 1;
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -176,6 +178,12 @@ export function ChecklistApp() {
     return () => controller.abort();
   }, [selectedDay, selectedWeekDates]);
 
+  useEffect(() => {
+    if (isComplete && activeTasks.length > 0) {
+      setConfettiBurstKey((current) => current + 1);
+    }
+  }, [activeTasks.length, isComplete]);
+
   return (
     <main className="app-shell">
       <section className="hero-card">
@@ -215,6 +223,25 @@ export function ChecklistApp() {
             } as CSSProperties
           }
         >
+          {isComplete ? (
+            <div className="confetti-layer" key={confettiBurstKey} aria-hidden="true">
+              {CONFETTI_PARTICLES.map((particle, index) => (
+                <span
+                  className="confetti-piece"
+                  key={`${confettiBurstKey}-${index}`}
+                  style={
+                    {
+                      "--confetti-left": particle.left,
+                      "--confetti-delay": particle.delay,
+                      "--confetti-duration": particle.duration,
+                      "--confetti-rotate": particle.rotate,
+                      "--confetti-color": particle.color
+                    } as CSSProperties
+                  }
+                />
+              ))}
+            </div>
+          ) : null}
           <span>Прогресс</span>
           <strong>{Math.round(progress * 100)}%</strong>
         </div>
@@ -311,3 +338,15 @@ function formatDateForApi(date: Date) {
 
   return `${year}-${month}-${day}`;
 }
+
+const CONFETTI_PARTICLES = [
+  { left: "8%", delay: "0ms", duration: "950ms", rotate: "-18deg", color: "#ef476f" },
+  { left: "16%", delay: "120ms", duration: "900ms", rotate: "12deg", color: "#ffd166" },
+  { left: "24%", delay: "40ms", duration: "1020ms", rotate: "-10deg", color: "#06d6a0" },
+  { left: "33%", delay: "180ms", duration: "880ms", rotate: "20deg", color: "#118ab2" },
+  { left: "44%", delay: "90ms", duration: "980ms", rotate: "-24deg", color: "#f78c6b" },
+  { left: "56%", delay: "140ms", duration: "940ms", rotate: "14deg", color: "#8338ec" },
+  { left: "68%", delay: "20ms", duration: "1100ms", rotate: "-16deg", color: "#ff006e" },
+  { left: "78%", delay: "160ms", duration: "920ms", rotate: "18deg", color: "#3a86ff" },
+  { left: "88%", delay: "60ms", duration: "1000ms", rotate: "-12deg", color: "#fb5607" }
+] as const;
