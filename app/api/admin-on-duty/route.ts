@@ -35,11 +35,19 @@ function extractAdminName(row: WorkspaceStateRow, date: string) {
   const dayKey = String(Number(day));
   const dayKeyPadded = day.padStart(2, "0");
 
-  return (
-    row.data.months?.[monthKey]?.asgn?.[dayKey]?.admin?.[0]?.name ??
-    row.data.months?.[monthKey]?.asgn?.[dayKeyPadded]?.admin?.[0]?.name ??
-    null
-  );
+  return {
+    administrator:
+      row.data.months?.[monthKey]?.asgn?.[dayKey]?.admin?.[0]?.name ??
+      row.data.months?.[monthKey]?.asgn?.[dayKeyPadded]?.admin?.[0]?.name ??
+      null,
+    monthKey,
+    dayKey,
+    dayKeyPadded,
+    hasMonth: Boolean(row.data.months?.[monthKey]),
+    hasDay:
+      Boolean(row.data.months?.[monthKey]?.asgn?.[dayKey]) ||
+      Boolean(row.data.months?.[monthKey]?.asgn?.[dayKeyPadded])
+  };
 }
 
 export async function GET(request: Request) {
@@ -86,9 +94,9 @@ export async function GET(request: Request) {
       return Response.json({ administrator: null });
     }
 
-    return Response.json({
-      administrator: extractAdminName(row, date)
-    });
+    const result = extractAdminName(row, date);
+
+    return Response.json(result);
   } catch (error) {
     return Response.json(
       {

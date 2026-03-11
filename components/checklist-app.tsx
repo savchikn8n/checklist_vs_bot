@@ -55,6 +55,7 @@ export function ChecklistApp() {
   const [administratorStatus, setAdministratorStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
+  const [administratorDebug, setAdministratorDebug] = useState<string | null>(null);
 
   const selectedWeekDates = useMemo(
     () => getWeekDatesForSelection(context, selectedWeek),
@@ -144,10 +145,22 @@ export function ChecklistApp() {
           throw new Error("Failed to load administrator");
         }
 
-        return (await response.json()) as { administrator: string | null };
+        return (await response.json()) as {
+          administrator: string | null;
+          monthKey?: string;
+          dayKey?: string;
+          dayKeyPadded?: string;
+          hasMonth?: boolean;
+          hasDay?: boolean;
+        };
       })
       .then((payload) => {
         setAdministrator(payload.administrator);
+        setAdministratorDebug(
+          payload.administrator
+            ? null
+            : `Поиск: ${payload.monthKey ?? "?"} / ${payload.dayKeyPadded ?? payload.dayKey ?? "?"} • месяц: ${payload.hasMonth ? "ok" : "нет"} • день: ${payload.hasDay ? "ok" : "нет"}`
+        );
         setAdministratorStatus("ready");
       })
       .catch((error: unknown) => {
@@ -156,6 +169,7 @@ export function ChecklistApp() {
         }
 
         setAdministrator(null);
+        setAdministratorDebug(null);
         setAdministratorStatus("error");
       });
 
@@ -175,6 +189,9 @@ export function ChecklistApp() {
                 ? "Нет данных"
                 : administrator ?? "Не назначен"}
           </strong>
+          {administratorDebug ? (
+            <small className="hero-admin-debug">{administratorDebug}</small>
+          ) : null}
         </div>
         <div className="hero-meta hero-meta--compact">
           <div>

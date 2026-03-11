@@ -71,6 +71,14 @@ input {
   line-height: 1.2;
 }
 
+.hero-admin-debug {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .section-kicker,
 .control-title,
 .hero-meta span,
