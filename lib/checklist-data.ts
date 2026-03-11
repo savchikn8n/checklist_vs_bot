@@ -65,7 +65,7 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
       },
       {
         id: "monday-bucket",
-        text: "Отмываем ведро с ершиками и колпак кальянной станции",
+        text: "Отмываем ведро с ершиками и колпак кальянной станции, протираем проточник",
         offWeeks: []
       },
       {
@@ -88,7 +88,7 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
       {
         id: "tuesday-tobacco",
         text: "Протираем основательно полки и кейсы под табак",
-        offWeeks: [1, 3]
+        offWeeks: []
       },
       {
         id: "tuesday-hoses",
@@ -97,7 +97,7 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
       },
       {
         id: "tuesday-closet",
-        text: "Протираем шкаф (все полки и рейки)",
+        text: "Протираем гардероб (все полки и рейки) аудиосистему (баллоном продуваем на выключенную)",
         offWeeks: [2, 4]
       },
       {
@@ -112,7 +112,7 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
       },
       {
         id: "tuesday-metal",
-        text: "Протираем все металлические соединения, за подушками, посадки, паллеты",
+        text: "Протираем все металлические соединения, за подушками, посадки, низ паллет",
         offWeeks: [1, 2, 3]
       }
     ]
@@ -124,7 +124,7 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
     tasks: [
       {
         id: "wednesday-thermos",
-        text: "Протираем полку под термосами, чайниками, стаканами, термосы и резинки",
+        text: "Протираем полку под термосами, чайниками | термосы и резинки",
         offWeeks: [2, 4]
       },
       {
@@ -134,18 +134,23 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
       },
       {
         id: "wednesday-partitions",
-        text: "Протираем перегородки между 6 и 7, за 5",
+        text: "Протираем перегородку между 6 и 7 и обеспыливаем кальяны в ней",
         offWeeks: [1, 3]
       },
       {
         id: "wednesday-dishwasher",
         text: "Ставим посудомойку на режим промывки",
-        offWeeks: []
+        offWeeks: [2, 3, 4]
       },
       {
         id: "wednesday-glass",
         text: "Моем стекло в коридоре с двух сторон",
         offWeeks: []
+      },
+      {
+        id: "wednesday-ice-maker",
+        text: "Протираем вентиляцию у льдогенератора",
+        offWeeks: [2, 3, 4]
       },
       {
         id: "wednesday-extractor",
@@ -170,8 +175,13 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
         offWeeks: []
       },
       {
+        id: "thursday-sills",
+        text: "Подоконники над круглым диваном",
+        offWeeks: []
+      },
+      {
         id: "thursday-ps",
-        text: "Протираем PS: воздуховоды, аудиосистему, баллоном продуваем на выключенную и остывшую",
+        text: "Протираем PS - воздуховоды (чистим пылесосом маленькой насадкой на выключенную)",
         offWeeks: [1, 3, 4]
       },
       {
@@ -183,6 +193,11 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
         id: "thursday-fridge",
         text: "Разморозка барного холодильника. Протираем резинки всех холодильников",
         offWeeks: [1, 2, 4]
+      },
+      {
+        id: "thursday-shelves",
+        text: "Наводим порядок в 2 полках под чашками и под станцией",
+        offWeeks: [2]
       }
     ]
   },
@@ -213,8 +228,8 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
       },
       {
         id: "friday-cups",
-        text: "Основательно промываем под чашками и за ними",
-        offWeeks: [2, 4]
+        text: "Промываем коврик под чашками",
+        offWeeks: []
       },
       {
         id: "friday-sockets",
@@ -230,23 +245,13 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
     tasks: [
       {
         id: "saturday-fire-extinguishers",
-        text: "Протираем все огнетушители, соединения стойки рядом",
+        text: "Протираем все огнетушители (3 шт) и пожарные кнопки (3)",
         offWeeks: []
       },
       {
         id: "saturday-box",
         text: "Протираем короб со всех сторон, трубу над баром",
         offWeeks: [2, 4]
-      },
-      {
-        id: "saturday-cables",
-        text: "Складываем провода, протираем кейс",
-        offWeeks: []
-      },
-      {
-        id: "saturday-tvs",
-        text: "Выключаем телики из розеток на 10 минут",
-        offWeeks: []
       },
       {
         id: "saturday-rack",
@@ -272,8 +277,8 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
       },
       {
         id: "sunday-dresser",
-        text: "Пылесосим комод внутри, протираем (потому что в сб уходит вся посуда)",
-        offWeeks: []
+        text: "Пылесосим комод внутри, протираем ящики бара",
+        offWeeks: [1, 3]
       },
       {
         id: "sunday-shelf",
@@ -283,7 +288,7 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
       {
         id: "sunday-kettles",
         text: "Замачиваем часть чайников в мистике (кислородном отбеливателе)",
-        offWeeks: []
+        offWeeks: [2, 4]
       },
       {
         id: "sunday-dispensers",
