@@ -30,17 +30,6 @@ declare global {
 
 type CompletionMap = Record<string, boolean>;
 
-const STORAGE_PREFIX = "checklist-progress";
-
-function getStorageKey(
-  cycleYear: number,
-  cycleMonth: number,
-  selectedWeek: number,
-  selectedDay: DayId
-) {
-  return `${STORAGE_PREFIX}:${cycleYear}-${cycleMonth + 1}:week-${selectedWeek}:${selectedDay}`;
-}
-
 function sortTasks(tasks: ChecklistTask[]) {
   return [...tasks];
 }
@@ -50,13 +39,17 @@ export function ChecklistApp() {
   const [selectedWeek, setSelectedWeek] = useState<number>(context.currentWeek);
   const [selectedDay, setSelectedDay] = useState<DayId>(context.activeDay);
   const [completed, setCompleted] = useState<CompletionMap>({});
-  const [loadedStorageKey, setLoadedStorageKey] = useState("");
   const [administrator, setAdministrator] = useState<string | null>(null);
   const [administratorStatus, setAdministratorStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [administratorDebug, setAdministratorDebug] = useState<string | null>(null);
   const [confettiBurstKey, setConfettiBurstKey] = useState(0);
+  const [progressStatus, setProgressStatus] = useState<"idle" | "loading" | "ready" | "saving">(
+    "idle"
+  );
+  const [loadedProgressKey, setLoadedProgressKey] = useState("");
+  const [lastSyncedProgressSignature, setLastSyncedProgressSignature] = useState("");
 
   const selectedWeekDates = useMemo(
     () => getWeekDatesForSelection(context, selectedWeek),
@@ -82,6 +75,7 @@ export function ChecklistApp() {
     ? activeTasks.filter((task) => completed[task.id]).length / activeTasks.length
     : 1;
   const isComplete = progress === 1;
+  const progressKey = `${formatDateForApi(selectedWeekDates[selectedDay])}:${selectedWeek}:${selectedDay}`;
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -90,40 +84,6 @@ export function ChecklistApp() {
     webApp?.setHeaderColor?.("#f3efe6");
     webApp?.setBackgroundColor?.("#f3efe6");
   }, []);
-
-  useEffect(() => {
-    const key = getStorageKey(
-      context.cycleYear,
-      context.cycleMonth,
-      selectedWeek,
-      selectedDay
-    );
-    const raw = window.localStorage.getItem(key);
-    setCompleted(raw ? (JSON.parse(raw) as CompletionMap) : {});
-    setLoadedStorageKey(key);
-  }, [context.cycleMonth, context.cycleYear, selectedDay, selectedWeek]);
-
-  useEffect(() => {
-    const key = getStorageKey(
-      context.cycleYear,
-      context.cycleMonth,
-      selectedWeek,
-      selectedDay
-    );
-
-    if (loadedStorageKey !== key) {
-      return;
-    }
-
-    window.localStorage.setItem(key, JSON.stringify(completed));
-  }, [
-    completed,
-    context.cycleMonth,
-    context.cycleYear,
-    loadedStorageKey,
-    selectedDay,
-    selectedWeek
-  ]);
 
   function toggleTask(taskId: string) {
     setCompleted((current) => ({
@@ -177,6 +137,120 @@ export function ChecklistApp() {
 
     return () => controller.abort();
   }, [selectedDay, selectedWeekDates]);
+
+  useEffect(() => {
+    const selectedDate = formatDateForApi(selectedWeekDates[selectedDay]);
+    const controller = new AbortController();
+
+    setProgressStatus("loading");
+
+    fetch(
+      `/api/checklist-progress?date=${selectedDate}&week=${selectedWeek}&dayId=${selectedDay}`,
+      {
+        signal: controller.signal,
+        cache: "no-store"
+      }
+    )
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Failed to load checklist progress");
+        }
+
+        return (await response.json()) as {
+          completedTaskIds: string[];
+        };
+      })
+      .then((payload) => {
+        const activeTaskIds = new Set(currentDay.tasks.map((task) => task.id));
+        const nextCompleted = payload.completedTaskIds.reduce<CompletionMap>((acc, taskId) => {
+          if (activeTaskIds.has(taskId)) {
+            acc[taskId] = true;
+          }
+
+          return acc;
+        }, {});
+
+        setCompleted(nextCompleted);
+        setLoadedProgressKey(progressKey);
+        setLastSyncedProgressSignature(
+          JSON.stringify({
+            progressKey,
+            completedTaskIds: Object.keys(nextCompleted).sort()
+          })
+        );
+        setProgressStatus("ready");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setCompleted({});
+        setLoadedProgressKey(progressKey);
+        setLastSyncedProgressSignature(
+          JSON.stringify({
+            progressKey,
+            completedTaskIds: []
+          })
+        );
+        setProgressStatus("ready");
+      });
+
+    return () => controller.abort();
+  }, [currentDay.tasks, progressKey, selectedDay, selectedWeek, selectedWeekDates]);
+
+  useEffect(() => {
+    if (loadedProgressKey !== progressKey || progressStatus === "loading") {
+      return;
+    }
+
+    const completedTaskIds = activeTasks
+      .filter((task) => completed[task.id])
+      .map((task) => task.id);
+    const progressPercent = Math.round(progress * 100);
+    const nextSignature = JSON.stringify({
+      progressKey,
+      completedTaskIds: [...completedTaskIds].sort()
+    });
+
+    if (lastSyncedProgressSignature === nextSignature) {
+      return;
+    }
+
+    setProgressStatus("saving");
+
+    fetch("/api/checklist-progress", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        checklistDate: formatDateForApi(selectedWeekDates[selectedDay]),
+        weekCycle: selectedWeek,
+        dayId: selectedDay,
+        completedTaskIds,
+        progressPercent
+      })
+    })
+      .then(() => {
+        setLastSyncedProgressSignature(nextSignature);
+        setProgressStatus("ready");
+      })
+      .catch(() => {
+        setProgressStatus("ready");
+      });
+  }, [
+    activeTasks,
+    completed,
+    lastSyncedProgressSignature,
+    loadedProgressKey,
+    progress,
+    progressKey,
+    progressStatus,
+    selectedDay,
+    selectedWeek,
+    selectedWeekDates
+  ]);
 
   useEffect(() => {
     if (isComplete && activeTasks.length > 0) {
