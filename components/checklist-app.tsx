@@ -165,18 +165,16 @@ export function ChecklistApp() {
   return (
     <main className="app-shell">
       <section className="hero-card">
-        <div className="hero-heading">
-          <h1>Чеклист смены</h1>
-          <div className="hero-admin">
-            <span>Администратор</span>
-            <strong>
-              {administratorStatus === "loading"
-                ? "Загрузка..."
-                : administratorStatus === "error"
-                  ? "Нет данных"
-                  : administrator ?? "Не назначен"}
-            </strong>
-          </div>
+        <h1>Чеклист смены</h1>
+        <div className="hero-admin hero-admin--full">
+          <span>Администратор</span>
+          <strong>
+            {administratorStatus === "loading"
+              ? "Загрузка..."
+              : administratorStatus === "error"
+                ? "Нет данных"
+                : administrator ?? "Не назначен"}
+          </strong>
         </div>
         <div className="hero-meta hero-meta--compact">
           <div>
