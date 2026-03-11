@@ -51,6 +51,10 @@ export function ChecklistApp() {
   const [selectedDay, setSelectedDay] = useState<DayId>(context.activeDay);
   const [completed, setCompleted] = useState<CompletionMap>({});
   const [loadedStorageKey, setLoadedStorageKey] = useState("");
+  const [administrator, setAdministrator] = useState<string | null>(null);
+  const [administratorStatus, setAdministratorStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
 
   const selectedWeekDates = useMemo(
     () => getWeekDatesForSelection(context, selectedWeek),
@@ -125,10 +129,55 @@ export function ChecklistApp() {
     }));
   }
 
+  useEffect(() => {
+    const selectedDate = formatDateForApi(selectedWeekDates[selectedDay]);
+    const controller = new AbortController();
+
+    setAdministratorStatus("loading");
+
+    fetch(`/api/admin-on-duty?date=${selectedDate}`, {
+      signal: controller.signal,
+      cache: "no-store"
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Failed to load administrator");
+        }
+
+        return (await response.json()) as { administrator: string | null };
+      })
+      .then((payload) => {
+        setAdministrator(payload.administrator);
+        setAdministratorStatus("ready");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setAdministrator(null);
+        setAdministratorStatus("error");
+      });
+
+    return () => controller.abort();
+  }, [selectedDay, selectedWeekDates]);
+
   return (
     <main className="app-shell">
       <section className="hero-card">
-        <h1>Чеклист смены</h1>
+        <div className="hero-heading">
+          <h1>Чеклист смены</h1>
+          <div className="hero-admin">
+            <span>Администратор</span>
+            <strong>
+              {administratorStatus === "loading"
+                ? "Загрузка..."
+                : administratorStatus === "error"
+                  ? "Нет данных"
+                  : administrator ?? "Не назначен"}
+            </strong>
+          </div>
+        </div>
         <div className="hero-meta hero-meta--compact">
           <div>
             <span>Месяц цикла</span>
@@ -238,4 +287,12 @@ export function ChecklistApp() {
       </section>
     </main>
   );
+}
+
+function formatDateForApi(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }

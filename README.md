@@ -77,6 +77,9 @@ http://localhost:3000
 ```env
 BOT_TOKEN=токен_бота_из_BotFather
 APP_URL=https://ваш-проект.vercel.app
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=public_anon_key
+SUPABASE_WORKSPACE_ID=default
 ```
 
 Где взять значения:
@@ -85,6 +88,12 @@ APP_URL=https://ваш-проект.vercel.app
   Открыть `@BotFather` в Telegram, создать бота через `/newbot`, скопировать токен.
 - `APP_URL`:
   Это адрес проекта после деплоя на Vercel.
+- `SUPABASE_URL`:
+  URL проекта Supabase.
+- `SUPABASE_ANON_KEY`:
+  Публичный anon key из настроек Supabase.
+- `SUPABASE_WORKSPACE_ID`:
+  Идентификатор workspace, из которого чеклист читает текущего администратора.
 
 ## Как связать с Telegram
 
@@ -145,6 +154,9 @@ git push -u origin main
 4. В настройках проекта добавить переменные окружения:
    - `BOT_TOKEN`
    - `APP_URL`
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+   - `SUPABASE_WORKSPACE_ID`
 5. Нажать `Deploy`.
 
 ## Ограничение Telegram
