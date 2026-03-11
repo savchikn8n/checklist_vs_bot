@@ -79,6 +79,7 @@ BOT_TOKEN=токен_бота_из_BotFather
 APP_URL=https://ваш-проект.vercel.app
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=public_anon_key
+SUPABASE_SERVICE_ROLE_KEY=service_role_key
 SUPABASE_WORKSPACE_ID=default
 ```
 
@@ -92,6 +93,8 @@ SUPABASE_WORKSPACE_ID=default
   URL проекта Supabase.
 - `SUPABASE_ANON_KEY`:
   Публичный anon key из настроек Supabase.
+- `SUPABASE_SERVICE_ROLE_KEY`:
+  Серверный ключ Supabase для чтения `workspace_states`, если таблица закрыта RLS.
 - `SUPABASE_WORKSPACE_ID`:
   Идентификатор workspace, из которого чеклист читает текущего администратора.
 
@@ -156,6 +159,7 @@ git push -u origin main
    - `APP_URL`
    - `SUPABASE_URL`
    - `SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
    - `SUPABASE_WORKSPACE_ID`
 5. Нажать `Deploy`.
 

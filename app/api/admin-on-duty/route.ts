@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     }
 
     const supabaseUrl = getEnv("SUPABASE_URL");
-    const supabaseAnonKey = getEnv("SUPABASE_ANON_KEY");
+    const supabaseServiceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
     const workspaceId = process.env.SUPABASE_WORKSPACE_ID ?? "default";
 
     const url = new URL(`${supabaseUrl}${SUPABASE_REST_PATH}`);
@@ -70,8 +70,8 @@ export async function GET(request: Request) {
 
     const response = await fetch(url, {
       headers: {
-        apikey: supabaseAnonKey,
-        Authorization: `Bearer ${supabaseAnonKey}`
+        apikey: supabaseServiceRoleKey,
+        Authorization: `Bearer ${supabaseServiceRoleKey}`
       },
       cache: "no-store"
     });
