@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Checklist Bot",
-  description: "Telegram Mini App с недельным чеклистом"
+  title: "Чеклист Всех Своих",
+  description: "Чеклист Всех Своих для Telegram Mini App"
 };
 
 export default function RootLayout({
