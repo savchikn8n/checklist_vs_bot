@@ -231,9 +231,10 @@ export function ChecklistApp() {
                   key={`${confettiBurstKey}-${index}`}
                   style={
                     {
-                      "--confetti-left": particle.left,
                       "--confetti-delay": particle.delay,
                       "--confetti-duration": particle.duration,
+                      "--confetti-x": particle.x,
+                      "--confetti-y": particle.y,
                       "--confetti-rotate": particle.rotate,
                       "--confetti-color": particle.color
                     } as CSSProperties
@@ -340,13 +341,16 @@ function formatDateForApi(date: Date) {
 }
 
 const CONFETTI_PARTICLES = [
-  { left: "8%", delay: "0ms", duration: "950ms", rotate: "-18deg", color: "#ef476f" },
-  { left: "16%", delay: "120ms", duration: "900ms", rotate: "12deg", color: "#ffd166" },
-  { left: "24%", delay: "40ms", duration: "1020ms", rotate: "-10deg", color: "#06d6a0" },
-  { left: "33%", delay: "180ms", duration: "880ms", rotate: "20deg", color: "#118ab2" },
-  { left: "44%", delay: "90ms", duration: "980ms", rotate: "-24deg", color: "#f78c6b" },
-  { left: "56%", delay: "140ms", duration: "940ms", rotate: "14deg", color: "#8338ec" },
-  { left: "68%", delay: "20ms", duration: "1100ms", rotate: "-16deg", color: "#ff006e" },
-  { left: "78%", delay: "160ms", duration: "920ms", rotate: "18deg", color: "#3a86ff" },
-  { left: "88%", delay: "60ms", duration: "1000ms", rotate: "-12deg", color: "#fb5607" }
+  { x: "-44px", y: "-8px", delay: "0ms", duration: "920ms", rotate: "-120deg", color: "#ef476f" },
+  { x: "-32px", y: "-34px", delay: "60ms", duration: "980ms", rotate: "-70deg", color: "#ffd166" },
+  { x: "-8px", y: "-48px", delay: "20ms", duration: "1040ms", rotate: "-24deg", color: "#06d6a0" },
+  { x: "18px", y: "-42px", delay: "100ms", duration: "960ms", rotate: "26deg", color: "#118ab2" },
+  { x: "38px", y: "-18px", delay: "40ms", duration: "900ms", rotate: "84deg", color: "#f78c6b" },
+  { x: "42px", y: "10px", delay: "140ms", duration: "940ms", rotate: "112deg", color: "#8338ec" },
+  { x: "18px", y: "28px", delay: "180ms", duration: "880ms", rotate: "156deg", color: "#ff006e" },
+  { x: "-10px", y: "22px", delay: "120ms", duration: "860ms", rotate: "-168deg", color: "#3a86ff" },
+  { x: "-30px", y: "12px", delay: "80ms", duration: "910ms", rotate: "-148deg", color: "#fb5607" },
+  { x: "-2px", y: "-58px", delay: "30ms", duration: "1080ms", rotate: "-8deg", color: "#ffbe0b" },
+  { x: "28px", y: "-56px", delay: "150ms", duration: "990ms", rotate: "42deg", color: "#00bbf9" },
+  { x: "-54px", y: "-24px", delay: "110ms", duration: "930ms", rotate: "-96deg", color: "#80ed99" }
 ] as const;

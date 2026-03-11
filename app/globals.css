@@ -165,21 +165,21 @@ input {
 
 .confetti-piece {
   position: absolute;
-  left: var(--confetti-left);
-  top: 52%;
+  left: calc(100% - 42px);
+  top: 50%;
   width: 8px;
   height: 14px;
   border-radius: 2px;
   background: var(--confetti-color);
   opacity: 0;
-  transform: translate(-50%, 0) rotate(0deg);
+  transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
   animation: confetti-burst var(--confetti-duration) ease-out var(--confetti-delay) forwards;
 }
 
 @keyframes confetti-burst {
   0% {
     opacity: 0;
-    transform: translate(-50%, 8px) scale(0.6) rotate(0deg);
+    transform: translate(-50%, -50%) scale(0.35) rotate(0deg);
   }
 
   15% {
@@ -188,7 +188,11 @@ input {
 
   100% {
     opacity: 0;
-    transform: translate(-50%, -58px) translateX(calc((50% - var(--confetti-left)) * 0.18))
+    transform: translate(
+        calc(-50% + var(--confetti-x)),
+        calc(-50% + var(--confetti-y))
+      )
+      scale(1)
       rotate(var(--confetti-rotate));
   }
 }
