@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   CHECKLIST_DAYS,
   DAY_LABELS,
@@ -128,12 +128,8 @@ export function ChecklistApp() {
   return (
     <main className="app-shell">
       <section className="hero-card">
-        <p className="eyebrow">Telegram Mini App</p>
         <h1>Чеклист смены</h1>
-        <p className="hero-copy">
-          Текущий цикл: {selectedWeek}-я неделя, {DAY_LABELS[selectedDay].toLowerCase()}.
-        </p>
-        <div className="hero-meta">
+        <div className="hero-meta hero-meta--compact">
           <div>
             <span>Месяц цикла</span>
             <strong>
@@ -146,13 +142,17 @@ export function ChecklistApp() {
             <span>Дата дня</span>
             <strong>{formatDate(selectedWeekDates[selectedDay])}</strong>
           </div>
-          <div>
-            <span>Прогресс</span>
-            <strong>{Math.round(progress * 100)}%</strong>
-          </div>
         </div>
-        <div className="progress-bar" aria-hidden="true">
-          <div className="progress-bar__value" style={{ width: `${progress * 100}%` }} />
+        <div
+          className="progress-pill"
+          style={
+            {
+              "--progress-width": `${progress * 100}%`
+            } as CSSProperties
+          }
+        >
+          <span>Прогресс</span>
+          <strong>{Math.round(progress * 100)}%</strong>
         </div>
       </section>
 
@@ -167,7 +167,7 @@ export function ChecklistApp() {
                 onClick={() => setSelectedWeek(week)}
                 type="button"
               >
-                {week} неделя
+                {week} н.
               </button>
             ))}
           </div>

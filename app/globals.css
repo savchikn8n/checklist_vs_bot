@@ -54,10 +54,10 @@ input {
   padding: 26px;
 }
 
-.eyebrow,
 .section-kicker,
 .control-title,
-.hero-meta span {
+.hero-meta span,
+.progress-pill span {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
@@ -73,19 +73,15 @@ input {
   line-height: 0.95;
 }
 
-.hero-copy {
-  max-width: 36rem;
-  margin: 14px 0 0;
-  color: var(--muted);
-  font-size: 16px;
-  line-height: 1.5;
-}
-
 .hero-meta {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: 22px;
+}
+
+.hero-meta--compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .hero-meta div {
@@ -101,19 +97,37 @@ input {
   font-size: 18px;
 }
 
-.progress-bar {
-  height: 12px;
-  margin-top: 18px;
+.progress-pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px 16px;
   overflow: hidden;
-  background: rgba(32, 27, 23, 0.08);
-  border-radius: 999px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(32, 27, 23, 0.06);
 }
 
-.progress-bar__value {
-  height: 100%;
-  border-radius: inherit;
+.progress-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--progress-width);
   background: linear-gradient(90deg, var(--accent) 0%, #dd845f 100%);
+  opacity: 0.95;
   transition: width 180ms ease;
+}
+
+.progress-pill > * {
+  position: relative;
+  z-index: 1;
+}
+
+.progress-pill strong {
+  font-size: 18px;
 }
 
 .controls-card,
@@ -127,18 +141,28 @@ input {
 }
 
 .chip-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 10px;
   margin-top: 10px;
 }
 
+.control-group:first-child .chip-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.control-group:last-child .chip-row {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
 .chip {
-  padding: 11px 16px;
+  min-width: 0;
+  padding: 11px 10px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: #fffaf3;
   color: var(--ink);
+  text-align: center;
+  white-space: nowrap;
 }
 
 .chip--active {
@@ -149,7 +173,7 @@ input {
 
 .section-head {
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 18px;
@@ -167,8 +191,8 @@ input {
 
 .task-item {
   display: grid;
-  grid-template-columns: auto auto 1fr;
-  gap: 14px;
+  grid-template-columns: 22px 28px minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
   padding: 16px;
   background: var(--card-strong);
@@ -192,7 +216,9 @@ input {
 }
 
 .task-text {
+  min-width: 0;
   line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .tasks-card--muted {
@@ -225,7 +251,7 @@ input {
   }
 
   .hero-meta {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .section-head {
@@ -233,12 +259,41 @@ input {
     align-items: start;
   }
 
+  .controls-card,
+  .tasks-card {
+    padding: 16px;
+  }
+
+  .control-group:first-child .chip-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .control-group:last-child .chip-row {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .chip {
+    padding: 10px 0;
+    font-size: 13px;
+  }
+
   .task-item {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 20px 24px minmax(0, 1fr);
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .task-item input {
+    width: 20px;
+    height: 20px;
   }
 
   .task-index {
-    grid-column: 2;
-    margin-top: -8px;
+    margin-top: 4px;
+  }
+
+  .task-text {
+    font-size: 14px;
   }
 }
