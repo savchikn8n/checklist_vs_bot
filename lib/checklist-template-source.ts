@@ -1,5 +1,6 @@
 import {
   DEFAULT_WEEK_CYCLE_LENGTH,
+  DAY_LABELS,
   LOCAL_CHECKLIST_TEMPLATE,
   sortChecklistTemplate,
   type ChecklistTemplateDay,
@@ -108,19 +109,27 @@ function normalizeDay(
     tasks?: unknown[];
   };
 
-  if (
-    !isDayId(candidate.id) ||
-    typeof candidate.title !== "string" ||
-    typeof candidate.shortTitle !== "string" ||
-    !Array.isArray(candidate.tasks)
-  ) {
+  if (!isDayId(candidate.id) || !Array.isArray(candidate.tasks)) {
     return null;
   }
 
+  const fallbackShortTitles: Record<ChecklistTemplateDay["id"], string> = {
+    monday: "Пн",
+    tuesday: "Вт",
+    wednesday: "Ср",
+    thursday: "Чт",
+    friday: "Пт",
+    saturday: "Сб",
+    sunday: "Вс"
+  };
+
   return {
     id: candidate.id,
-    title: candidate.title,
-    shortTitle: candidate.shortTitle,
+    title: typeof candidate.title === "string" ? candidate.title : DAY_LABELS[candidate.id],
+    shortTitle:
+      typeof candidate.shortTitle === "string"
+        ? candidate.shortTitle
+        : fallbackShortTitles[candidate.id],
     sortOrder: typeof candidate.sortOrder === "number" ? candidate.sortOrder : index + 1,
     enabled: candidate.enabled ?? true,
     tasks: candidate.tasks
