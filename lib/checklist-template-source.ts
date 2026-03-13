@@ -157,14 +157,6 @@ function normalizeChecklistTemplateRow(
     return null;
   }
 
-  if (isChecklistTemplate(nestedData)) {
-    return {
-      ...nestedData,
-      version: row.version ?? nestedData.version,
-      workspaceId
-    };
-  }
-
   const candidate = nestedData as Partial<ChecklistTemplate> & {
     days?: unknown[];
   };
@@ -178,7 +170,9 @@ function normalizeChecklistTemplateRow(
   }
 
   return {
-    version: row.version ?? candidate.version ?? LOCAL_CHECKLIST_TEMPLATE.version,
+    version:
+      row.version ??
+      (typeof candidate.version === "number" ? candidate.version : LOCAL_CHECKLIST_TEMPLATE.version),
     workspaceId,
     weekCycleLength,
     days: candidate.days
