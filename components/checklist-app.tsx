@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
-  CHECKLIST_DAYS,
   DAY_LABELS,
   WEEK_OPTIONS,
-  type ChecklistTask,
+  type ChecklistTemplate,
+  type ChecklistTemplateTask,
   type DayId
 } from "../lib/checklist-data";
 import {
@@ -30,12 +30,14 @@ declare global {
 
 type CompletionMap = Record<string, boolean>;
 
-function sortTasks(tasks: ChecklistTask[]) {
+function sortTasks(tasks: ChecklistTemplateTask[]) {
   return [...tasks];
 }
 
 export function ChecklistApp() {
   const context = useMemo(() => getCycleContext(), []);
+  const [template, setTemplate] = useState<ChecklistTemplate | null>(null);
+  const [templateStatus, setTemplateStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedWeek, setSelectedWeek] = useState<number>(context.currentWeek);
   const [selectedDay, setSelectedDay] = useState<DayId>(context.activeDay);
   const [completed, setCompleted] = useState<CompletionMap>({});
@@ -56,19 +58,31 @@ export function ChecklistApp() {
     [context, selectedWeek]
   );
 
+  const availableDays = useMemo(() => template?.days ?? [], [template]);
+
   const currentDay = useMemo(
-    () => CHECKLIST_DAYS.find((day) => day.id === selectedDay) ?? CHECKLIST_DAYS[0],
-    [selectedDay]
+    () => availableDays.find((day) => day.id === selectedDay) ?? availableDays[0] ?? null,
+    [availableDays, selectedDay]
   );
 
   const activeTasks = useMemo(
-    () => sortTasks(currentDay.tasks.filter((task) => !task.offWeeks.includes(selectedWeek))),
-    [currentDay.tasks, selectedWeek]
+    () =>
+      sortTasks(
+        (currentDay?.tasks ?? []).filter(
+          (task) => task.enabled && task.activeWeeks.includes(selectedWeek)
+        )
+      ),
+    [currentDay, selectedWeek]
   );
 
   const skippedTasks = useMemo(
-    () => sortTasks(currentDay.tasks.filter((task) => task.offWeeks.includes(selectedWeek))),
-    [currentDay.tasks, selectedWeek]
+    () =>
+      sortTasks(
+        (currentDay?.tasks ?? []).filter(
+          (task) => task.enabled && !task.activeWeeks.includes(selectedWeek)
+        )
+      ),
+    [currentDay, selectedWeek]
   );
 
   const progress = activeTasks.length
@@ -85,6 +99,51 @@ export function ChecklistApp() {
     webApp?.setBackgroundColor?.("#f3efe6");
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setTemplateStatus("loading");
+
+    fetch("/api/checklist-template", {
+      signal: controller.signal,
+      cache: "no-store"
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Failed to load checklist template");
+        }
+
+        return (await response.json()) as {
+          template: ChecklistTemplate;
+        };
+      })
+      .then((payload) => {
+        setTemplate(payload.template);
+        setTemplateStatus("ready");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setTemplateStatus("error");
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!availableDays.length) {
+      return;
+    }
+
+    const hasSelectedDay = availableDays.some((day) => day.id === selectedDay);
+
+    if (!hasSelectedDay) {
+      setSelectedDay(availableDays[0].id);
+    }
+  }, [availableDays, selectedDay]);
+
   function toggleTask(taskId: string) {
     setCompleted((current) => ({
       ...current,
@@ -93,6 +152,10 @@ export function ChecklistApp() {
   }
 
   useEffect(() => {
+    if (!currentDay) {
+      return;
+    }
+
     const selectedDate = formatDateForApi(selectedWeekDates[selectedDay]);
     const controller = new AbortController();
 
@@ -136,9 +199,13 @@ export function ChecklistApp() {
       });
 
     return () => controller.abort();
-  }, [selectedDay, selectedWeekDates]);
+  }, [currentDay, selectedDay, selectedWeekDates]);
 
   useEffect(() => {
+    if (!currentDay) {
+      return;
+    }
+
     const selectedDate = formatDateForApi(selectedWeekDates[selectedDay]);
     const controller = new AbortController();
 
@@ -197,7 +264,7 @@ export function ChecklistApp() {
       });
 
     return () => controller.abort();
-  }, [currentDay.tasks, progressKey, selectedDay, selectedWeek, selectedWeekDates]);
+  }, [currentDay, progressKey, selectedDay, selectedWeek, selectedWeekDates]);
 
   useEffect(() => {
     if (loadedProgressKey !== progressKey || progressStatus === "loading") {
@@ -260,6 +327,12 @@ export function ChecklistApp() {
 
   return (
     <main className="app-shell">
+      {templateStatus === "error" ? (
+        <section className="tasks-card">
+          <p className="empty-state">Не удалось загрузить шаблон чеклиста.</p>
+        </section>
+      ) : null}
+
       <section className="hero-card">
         <h1>Чеклист смены</h1>
         <div className="hero-admin hero-admin--full">
@@ -342,7 +415,7 @@ export function ChecklistApp() {
         <div className="control-group">
           <span className="control-title">День недели</span>
           <div className="chip-row">
-            {CHECKLIST_DAYS.map((day) => (
+            {availableDays.map((day) => (
               <button
                 key={day.id}
                 className={day.id === selectedDay ? "chip chip--active" : "chip"}
@@ -360,12 +433,14 @@ export function ChecklistApp() {
         <div className="section-head">
           <div>
             <p className="section-kicker">Активные задачи</p>
-            <h2>{currentDay.title}</h2>
+            <h2>{currentDay?.title ?? "Загрузка..."}</h2>
           </div>
           <span className="section-date">{formatDate(selectedWeekDates[selectedDay])}</span>
         </div>
 
-        {activeTasks.length ? (
+        {templateStatus === "loading" ? (
+          <p className="empty-state">Загружаем шаблон чеклиста...</p>
+        ) : activeTasks.length ? (
           <div className="task-list">
             {activeTasks.map((task, index) => (
               <label className="task-item" key={task.id}>
@@ -392,7 +467,9 @@ export function ChecklistApp() {
           </div>
         </div>
 
-        {skippedTasks.length ? (
+        {templateStatus === "loading" ? (
+          <p className="empty-state">Загружаем шаблон чеклиста...</p>
+        ) : skippedTasks.length ? (
           <ul className="muted-list">
             {skippedTasks.map((task) => (
               <li key={task.id}>{task.text}</li>

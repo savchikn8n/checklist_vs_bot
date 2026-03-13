@@ -7,19 +7,44 @@ export type DayId =
   | "saturday"
   | "sunday";
 
-export type ChecklistTask = {
+export type LegacyChecklistTask = {
   id: string;
   text: string;
   offWeeks: number[];
 };
 
-export type ChecklistDay = {
+export type LegacyChecklistDay = {
   id: DayId;
   title: string;
   shortTitle: string;
-  tasks: ChecklistTask[];
+  tasks: LegacyChecklistTask[];
 };
 
+export type ChecklistTemplateTask = {
+  id: string;
+  text: string;
+  activeWeeks: number[];
+  sortOrder: number;
+  enabled: boolean;
+};
+
+export type ChecklistTemplateDay = {
+  id: DayId;
+  title: string;
+  shortTitle: string;
+  sortOrder: number;
+  enabled: boolean;
+  tasks: ChecklistTemplateTask[];
+};
+
+export type ChecklistTemplate = {
+  version: number;
+  workspaceId: string;
+  weekCycleLength: number;
+  days: ChecklistTemplateDay[];
+};
+
+export const DEFAULT_WEEK_CYCLE_LENGTH = 4;
 export const WEEK_OPTIONS = [1, 2, 3, 4] as const;
 
 export const DAY_ORDER: DayId[] = [
@@ -42,7 +67,7 @@ export const DAY_LABELS: Record<DayId, string> = {
   sunday: "Воскресенье"
 };
 
-export const CHECKLIST_DAYS: ChecklistDay[] = [
+export const LEGACY_CHECKLIST_DAYS: LegacyChecklistDay[] = [
   {
     id: "monday",
     title: "Понедельник",
@@ -298,3 +323,56 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
     ]
   }
 ];
+
+export function migrateChecklistDaysToTemplate(
+  legacyDays: LegacyChecklistDay[],
+  options?: {
+    version?: number;
+    workspaceId?: string;
+    weekCycleLength?: number;
+  }
+): ChecklistTemplate {
+  const version = options?.version ?? 1;
+  const workspaceId = options?.workspaceId ?? "default";
+  const weekCycleLength = options?.weekCycleLength ?? DEFAULT_WEEK_CYCLE_LENGTH;
+  const allWeeks = Array.from({ length: weekCycleLength }, (_, index) => index + 1);
+
+  return {
+    version,
+    workspaceId,
+    weekCycleLength,
+    days: legacyDays.map((day, dayIndex) => ({
+      id: day.id,
+      title: day.title,
+      shortTitle: day.shortTitle,
+      sortOrder: dayIndex + 1,
+      enabled: true,
+      tasks: day.tasks.map((task, taskIndex) => ({
+        id: task.id,
+        text: task.text,
+        activeWeeks: allWeeks.filter((week) => !task.offWeeks.includes(week)),
+        sortOrder: taskIndex + 1,
+        enabled: true
+      }))
+    }))
+  };
+}
+
+export function sortChecklistTemplate(template: ChecklistTemplate): ChecklistTemplate {
+  return {
+    ...template,
+    days: [...template.days]
+      .filter((day) => day.enabled)
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((day) => ({
+        ...day,
+        tasks: [...day.tasks]
+          .filter((task) => task.enabled)
+          .sort((left, right) => left.sortOrder - right.sortOrder)
+      }))
+  };
+}
+
+export const LOCAL_CHECKLIST_TEMPLATE = sortChecklistTemplate(
+  migrateChecklistDaysToTemplate(LEGACY_CHECKLIST_DAYS)
+);
