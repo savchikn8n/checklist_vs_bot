@@ -193,6 +193,10 @@ export async function loadChecklistTemplateFromSupabase(
   template: ChecklistTemplate;
   source: "supabase" | "fallback";
   debug?: string;
+  dayCountRaw?: number;
+  dayCountNormalized?: number;
+  firstRawDayId?: string | null;
+  firstNormalizedDayId?: string | null;
 }> {
   try {
     const supabaseUrl = getEnv("SUPABASE_URL");
@@ -212,6 +216,22 @@ export async function loadChecklistTemplateFromSupabase(
 
     const rows = (await response.json()) as ChecklistTemplateRow[];
     const row = rows[0];
+    const rawContainer =
+      row?.data && typeof row.data === "object"
+        ? "template" in (row.data as Record<string, unknown>)
+          ? (row.data as Record<string, unknown>).template
+          : "data" in (row.data as Record<string, unknown>)
+            ? (row.data as Record<string, unknown>).data
+            : row.data
+        : null;
+    const rawDays =
+      rawContainer && typeof rawContainer === "object" && Array.isArray((rawContainer as { days?: unknown[] }).days)
+        ? (rawContainer as { days: unknown[] }).days
+        : [];
+    const firstRawDay =
+      rawDays[0] && typeof rawDays[0] === "object"
+        ? ((rawDays[0] as { id?: unknown }).id ?? null)
+        : null;
 
     if (!row?.data) {
       return {
@@ -221,7 +241,11 @@ export async function loadChecklistTemplateFromSupabase(
           workspaceId
         },
         source: "fallback",
-        debug: "No checklist_templates row or empty data"
+        debug: "No checklist_templates row or empty data",
+        dayCountRaw: 0,
+        dayCountNormalized: LOCAL_CHECKLIST_TEMPLATE.days.length,
+        firstRawDayId: null,
+        firstNormalizedDayId: LOCAL_CHECKLIST_TEMPLATE.days[0]?.id ?? null
       };
     }
 
@@ -234,13 +258,21 @@ export async function loadChecklistTemplateFromSupabase(
           workspaceId
         },
         source: "fallback",
-        debug: "Invalid checklist_templates.data format"
+        debug: "Invalid checklist_templates.data format",
+        dayCountRaw: rawDays.length,
+        dayCountNormalized: LOCAL_CHECKLIST_TEMPLATE.days.length,
+        firstRawDayId: typeof firstRawDay === "string" ? firstRawDay : null,
+        firstNormalizedDayId: LOCAL_CHECKLIST_TEMPLATE.days[0]?.id ?? null
       };
     }
 
     return {
       template: sortChecklistTemplate(template),
-      source: "supabase"
+      source: "supabase",
+      dayCountRaw: rawDays.length,
+      dayCountNormalized: template.days.length,
+      firstRawDayId: typeof firstRawDay === "string" ? firstRawDay : null,
+      firstNormalizedDayId: template.days[0]?.id ?? null
     };
   } catch (error) {
     return {
@@ -249,7 +281,11 @@ export async function loadChecklistTemplateFromSupabase(
         workspaceId
       },
       source: "fallback",
-      debug: error instanceof Error ? error.message : "Unknown template loader error"
+      debug: error instanceof Error ? error.message : "Unknown template loader error",
+      dayCountRaw: 0,
+      dayCountNormalized: LOCAL_CHECKLIST_TEMPLATE.days.length,
+      firstRawDayId: null,
+      firstNormalizedDayId: LOCAL_CHECKLIST_TEMPLATE.days[0]?.id ?? null
     };
   }
 }
