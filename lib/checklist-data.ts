@@ -56,12 +56,12 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
       {
         id: "monday-pillows",
         text: "Поднимаем диванные подушки, пылесосим, вытряхиваем мусор, протираем посадки под подушками и низ паллет, полукруглый диван пылесосим с насадкой-щеткой",
-        offWeeks: [1, 2, 4]
+        offWeeks: [2, 4]
       },
       {
         id: "monday-vacuum",
         text: "Разбираем, вытряхиваем и промываем пылесос",
-        offWeeks: [1, 2, 4]
+        offWeeks: [2, 4]
       },
       {
         id: "monday-bucket",
@@ -103,7 +103,7 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
       {
         id: "tuesday-top-shelf",
         text: "Протираем верхнюю полку бара вместе с декором",
-        offWeeks: [1, 3, 4]
+        offWeeks: [1, 3]
       },
       {
         id: "tuesday-projector",
@@ -113,7 +113,7 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
       {
         id: "tuesday-metal",
         text: "Протираем все металлические соединения, за подушками, посадки, низ паллет",
-        offWeeks: [1, 2, 3]
+        offWeeks: [1, 3]
       }
     ]
   },
@@ -182,7 +182,7 @@ export const CHECKLIST_DAYS: ChecklistDay[] = [
       {
         id: "thursday-ps",
         text: "Протираем PS - воздуховоды (чистим пылесосом маленькой насадкой на выключенную)",
-        offWeeks: [1, 3, 4]
+        offWeeks: [1, 3]
       },
       {
         id: "thursday-bar-lamps",
