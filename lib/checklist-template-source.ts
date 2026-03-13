@@ -130,22 +130,33 @@ function normalizeDay(
 }
 
 function normalizeChecklistTemplateRow(
-  row: ChecklistTemplateRow,
+  row: Pick<ChecklistTemplateRow, "version" | "data">,
   workspaceId: string
 ): ChecklistTemplate | null {
   if (!row.data || typeof row.data !== "object") {
     return null;
   }
 
-  if (isChecklistTemplate(row.data)) {
+  const nestedData =
+    "template" in (row.data as Record<string, unknown>)
+      ? (row.data as Record<string, unknown>).template
+      : "data" in (row.data as Record<string, unknown>)
+        ? (row.data as Record<string, unknown>).data
+        : row.data;
+
+  if (!nestedData || typeof nestedData !== "object") {
+    return null;
+  }
+
+  if (isChecklistTemplate(nestedData)) {
     return {
-      ...row.data,
-      version: row.version ?? row.data.version,
+      ...nestedData,
+      version: row.version ?? nestedData.version,
       workspaceId
     };
   }
 
-  const candidate = row.data as Partial<ChecklistTemplate> & {
+  const candidate = nestedData as Partial<ChecklistTemplate> & {
     days?: unknown[];
   };
   const weekCycleLength =
@@ -172,44 +183,64 @@ export async function loadChecklistTemplateFromSupabase(
 ): Promise<{
   template: ChecklistTemplate;
   source: "supabase" | "fallback";
+  debug?: string;
 }> {
-  const supabaseUrl = getEnv("SUPABASE_URL");
-  const url = new URL(`${supabaseUrl}${SUPABASE_TEMPLATE_REST_PATH}`);
-  url.searchParams.set("select", "workspace_id,version,data,updated_at");
-  url.searchParams.set("workspace_id", `eq.${workspaceId}`);
-  url.searchParams.set("limit", "1");
+  try {
+    const supabaseUrl = getEnv("SUPABASE_URL");
+    const url = new URL(`${supabaseUrl}${SUPABASE_TEMPLATE_REST_PATH}`);
+    url.searchParams.set("select", "workspace_id,version,data,updated_at");
+    url.searchParams.set("workspace_id", `eq.${workspaceId}`);
+    url.searchParams.set("limit", "1");
 
-  const response = await fetch(url, {
-    headers: getSupabaseHeaders(),
-    cache: "no-store"
-  });
+    const response = await fetch(url, {
+      headers: getSupabaseHeaders(),
+      cache: "no-store"
+    });
 
-  if (!response.ok) {
-    throw new Error(`Supabase template request failed: ${await response.text()}`);
-  }
+    if (!response.ok) {
+      throw new Error(`Supabase template request failed: ${await response.text()}`);
+    }
 
-  const rows = (await response.json()) as ChecklistTemplateRow[];
-  const row = rows[0];
+    const rows = (await response.json()) as ChecklistTemplateRow[];
+    const row = rows[0];
 
-  if (!row?.data) {
+    if (!row?.data) {
+      return {
+        template: {
+          ...LOCAL_CHECKLIST_TEMPLATE,
+          version: row?.version ?? LOCAL_CHECKLIST_TEMPLATE.version,
+          workspaceId
+        },
+        source: "fallback",
+        debug: "No checklist_templates row or empty data"
+      };
+    }
+
+    const template = normalizeChecklistTemplateRow(row, workspaceId);
+
+    if (!template) {
+      return {
+        template: {
+          ...LOCAL_CHECKLIST_TEMPLATE,
+          workspaceId
+        },
+        source: "fallback",
+        debug: "Invalid checklist_templates.data format"
+      };
+    }
+
+    return {
+      template: sortChecklistTemplate(template),
+      source: "supabase"
+    };
+  } catch (error) {
     return {
       template: {
         ...LOCAL_CHECKLIST_TEMPLATE,
-        version: row?.version ?? LOCAL_CHECKLIST_TEMPLATE.version,
         workspaceId
       },
-      source: "fallback"
+      source: "fallback",
+      debug: error instanceof Error ? error.message : "Unknown template loader error"
     };
   }
-
-  const template = normalizeChecklistTemplateRow(row, workspaceId);
-
-  if (!template) {
-    throw new Error("Invalid checklist template format in Supabase");
-  }
-
-  return {
-    template: sortChecklistTemplate(template),
-    source: "supabase"
-  };
 }
