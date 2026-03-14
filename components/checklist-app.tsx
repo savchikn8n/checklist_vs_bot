@@ -85,9 +85,15 @@ export function ChecklistApp() {
     [currentDay, selectedWeek]
   );
 
-  const progress = activeTasks.length
-    ? activeTasks.filter((task) => completed[task.id]).length / activeTasks.length
-    : 1;
+  const isProgressReady =
+    templateStatus === "ready" &&
+    progressStatus !== "loading" &&
+    currentDay !== null;
+  const progress = !isProgressReady
+    ? 0
+    : activeTasks.length
+      ? activeTasks.filter((task) => completed[task.id]).length / activeTasks.length
+      : 1;
   const isComplete = progress === 1;
   const progressKey = `${formatDateForApi(selectedWeekDates[selectedDay])}:${selectedWeek}:${selectedDay}`;
 
@@ -320,10 +326,10 @@ export function ChecklistApp() {
   ]);
 
   useEffect(() => {
-    if (isComplete && activeTasks.length > 0) {
+    if (isProgressReady && isComplete && activeTasks.length > 0) {
       setConfettiBurstKey((current) => current + 1);
     }
-  }, [activeTasks.length, isComplete]);
+  }, [activeTasks.length, isComplete, isProgressReady]);
 
   return (
     <main className="app-shell">
