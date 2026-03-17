@@ -1,3 +1,5 @@
+import { upsertTelegramSubscriber } from "../../../../lib/telegram-subscribers";
+
 const TELEGRAM_API = "https://api.telegram.org";
 
 type TelegramUpdate = {
@@ -49,6 +51,14 @@ export async function POST(request: Request) {
   const update = (await request.json()) as TelegramUpdate;
   const chatId = update.message?.chat.id;
   const text = update.message?.text?.trim();
+
+  if (chatId) {
+    try {
+      await upsertTelegramSubscriber(chatId);
+    } catch {
+      // Subscriber persistence should not block bot usage.
+    }
+  }
 
   if (chatId && (!text || text === "/start")) {
     await sendTelegramMessage(

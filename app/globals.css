@@ -304,6 +304,62 @@ input {
   color: var(--muted);
 }
 
+.watcher-toast {
+  position: fixed;
+  left: 14px;
+  bottom: 18px;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: min(360px, calc(100vw - 28px));
+  pointer-events: none;
+  animation: watcher-rise 320ms ease-out;
+}
+
+.watcher-toast__image {
+  width: 92px;
+  height: auto;
+  filter: drop-shadow(0 16px 28px rgba(25, 14, 30, 0.22));
+}
+
+.watcher-toast__bubble {
+  padding: 12px 14px;
+  border: 1px solid rgba(30, 16, 20, 0.14);
+  border-radius: 18px 18px 18px 6px;
+  background: rgba(255, 251, 247, 0.94);
+  box-shadow: 0 18px 44px rgba(29, 17, 12, 0.18);
+  color: var(--ink);
+}
+
+.watcher-toast__bubble strong,
+.watcher-toast__bubble span {
+  display: block;
+}
+
+.watcher-toast__bubble strong {
+  font-size: 15px;
+}
+
+.watcher-toast__bubble span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+@keyframes watcher-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 720px) {
   .app-shell {
     width: min(100% - 16px, 960px);
@@ -367,5 +423,28 @@ input {
 
   .task-text {
     font-size: 14px;
+  }
+
+  .watcher-toast {
+    left: 10px;
+    bottom: 12px;
+    gap: 8px;
+    max-width: calc(100vw - 20px);
+  }
+
+  .watcher-toast__image {
+    width: 74px;
+  }
+
+  .watcher-toast__bubble {
+    padding: 10px 12px;
+  }
+
+  .watcher-toast__bubble strong {
+    font-size: 14px;
+  }
+
+  .watcher-toast__bubble span {
+    font-size: 12px;
   }
 }

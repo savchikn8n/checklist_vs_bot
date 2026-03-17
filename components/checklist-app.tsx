@@ -14,6 +14,10 @@ import {
   getCycleContext,
   getWeekDatesForSelection
 } from "../lib/week-utils";
+import {
+  formatDateForApi,
+  getOperationalChecklistTime
+} from "../lib/kaliningrad-time";
 
 declare global {
   interface Window {
@@ -35,11 +39,12 @@ function sortTasks(tasks: ChecklistTemplateTask[]) {
 }
 
 export function ChecklistApp() {
-  const context = useMemo(() => getCycleContext(), []);
+  const operationalTime = useMemo(() => getOperationalChecklistTime(), []);
+  const context = useMemo(() => getCycleContext(operationalTime.effectiveDate), [operationalTime]);
   const [template, setTemplate] = useState<ChecklistTemplate | null>(null);
   const [templateStatus, setTemplateStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedWeek, setSelectedWeek] = useState<number>(context.currentWeek);
-  const [selectedDay, setSelectedDay] = useState<DayId>(context.activeDay);
+  const [selectedDay, setSelectedDay] = useState<DayId>(operationalTime.effectiveDayId);
   const [completed, setCompleted] = useState<CompletionMap>({});
   const [administrator, setAdministrator] = useState<string | null>(null);
   const [administratorStatus, setAdministratorStatus] = useState<
@@ -52,6 +57,7 @@ export function ChecklistApp() {
   );
   const [loadedProgressKey, setLoadedProgressKey] = useState("");
   const [lastSyncedProgressSignature, setLastSyncedProgressSignature] = useState("");
+  const [showWatcher, setShowWatcher] = useState(false);
 
   const selectedWeekDates = useMemo(
     () => getWeekDatesForSelection(context, selectedWeek),
@@ -96,6 +102,7 @@ export function ChecklistApp() {
       : 1;
   const isComplete = progress === 1;
   const progressKey = `${formatDateForApi(selectedWeekDates[selectedDay])}:${selectedWeek}:${selectedDay}`;
+  const warningDateLabel = formatDate(selectedWeekDates[selectedDay]);
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -104,6 +111,11 @@ export function ChecklistApp() {
     webApp?.setHeaderColor?.("#f3efe6");
     webApp?.setBackgroundColor?.("#f3efe6");
   }, []);
+
+  useEffect(() => {
+    setSelectedWeek(context.currentWeek);
+    setSelectedDay(operationalTime.effectiveDayId);
+  }, [context.currentWeek, operationalTime.effectiveDayId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -331,6 +343,23 @@ export function ChecklistApp() {
     }
   }, [activeTasks.length, isComplete, isProgressReady]);
 
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const isForced = searchParams.get("forceWatcher") === "1";
+    const shouldShowBySchedule =
+      isProgressReady &&
+      progress < 1 &&
+      operationalTime.isAfterWarningThreshold &&
+      operationalTime.isBeforeCutoff;
+
+    setShowWatcher(isForced || shouldShowBySchedule);
+  }, [
+    isProgressReady,
+    operationalTime.isAfterWarningThreshold,
+    operationalTime.isBeforeCutoff,
+    progress
+  ]);
+
   return (
     <main className="app-shell">
       {templateStatus === "error" ? (
@@ -485,16 +514,22 @@ export function ChecklistApp() {
           <p className="empty-state">Для этого дня все задачи активны.</p>
         )}
       </section>
+
+      {showWatcher ? (
+        <div className="watcher-toast" aria-live="polite">
+          <img
+            alt="Следящая Медуза"
+            className="watcher-toast__image"
+            src="/watcher-medusa.png"
+          />
+          <div className="watcher-toast__bubble">
+            <strong>Я слежу за тобой</strong>
+            <span>Чеклист за {warningDateLabel} еще не закрыт.</span>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
-}
-
-function formatDateForApi(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
 }
 
 const CONFETTI_PARTICLES = [
