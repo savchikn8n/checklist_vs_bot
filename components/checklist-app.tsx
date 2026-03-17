@@ -41,6 +41,14 @@ function sortTasks(tasks: ChecklistTemplateTask[]) {
 export function ChecklistApp() {
   const operationalTime = useMemo(() => getOperationalChecklistTime(), []);
   const context = useMemo(() => getCycleContext(operationalTime.effectiveDate), [operationalTime]);
+  const forcedWatcher = useMemo(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get("forceWatcher") === "1" || searchParams.get("watcher") === "1";
+  }, []);
   const [template, setTemplate] = useState<ChecklistTemplate | null>(null);
   const [templateStatus, setTemplateStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedWeek, setSelectedWeek] = useState<number>(context.currentWeek);
@@ -57,7 +65,6 @@ export function ChecklistApp() {
   );
   const [loadedProgressKey, setLoadedProgressKey] = useState("");
   const [lastSyncedProgressSignature, setLastSyncedProgressSignature] = useState("");
-  const [showWatcher, setShowWatcher] = useState(false);
 
   const selectedWeekDates = useMemo(
     () => getWeekDatesForSelection(context, selectedWeek),
@@ -343,22 +350,12 @@ export function ChecklistApp() {
     }
   }, [activeTasks.length, isComplete, isProgressReady]);
 
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const isForced = searchParams.get("forceWatcher") === "1";
-    const shouldShowBySchedule =
-      isProgressReady &&
+  const showWatcher =
+    forcedWatcher ||
+    (isProgressReady &&
       progress < 1 &&
       operationalTime.isAfterWarningThreshold &&
-      operationalTime.isBeforeCutoff;
-
-    setShowWatcher(isForced || shouldShowBySchedule);
-  }, [
-    isProgressReady,
-    operationalTime.isAfterWarningThreshold,
-    operationalTime.isBeforeCutoff,
-    progress
-  ]);
+      operationalTime.isBeforeCutoff);
 
   return (
     <main className="app-shell">
