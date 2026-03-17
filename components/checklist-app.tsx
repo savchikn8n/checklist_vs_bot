@@ -41,14 +41,7 @@ function sortTasks(tasks: ChecklistTemplateTask[]) {
 export function ChecklistApp() {
   const operationalTime = useMemo(() => getOperationalChecklistTime(), []);
   const context = useMemo(() => getCycleContext(operationalTime.effectiveDate), [operationalTime]);
-  const forcedWatcher = useMemo(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
-    const searchParams = new URLSearchParams(window.location.search);
-    return searchParams.get("forceWatcher") === "1" || searchParams.get("watcher") === "1";
-  }, []);
+  const [forcedWatcher, setForcedWatcher] = useState(false);
   const [template, setTemplate] = useState<ChecklistTemplate | null>(null);
   const [templateStatus, setTemplateStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedWeek, setSelectedWeek] = useState<number>(context.currentWeek);
@@ -117,6 +110,13 @@ export function ChecklistApp() {
     webApp?.expand();
     webApp?.setHeaderColor?.("#f3efe6");
     webApp?.setBackgroundColor?.("#f3efe6");
+  }, []);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    setForcedWatcher(
+      searchParams.get("forceWatcher") === "1" || searchParams.get("watcher") === "1"
+    );
   }, []);
 
   useEffect(() => {
