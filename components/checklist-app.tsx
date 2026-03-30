@@ -58,7 +58,6 @@ export function ChecklistApp() {
   const [templateStatus, setTemplateStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedWeek, setSelectedWeek] = useState<number>(context.currentWeek);
   const [selectedDay, setSelectedDay] = useState<DayId>(operationalTime.effectiveDayId);
-  const [isAutoSelectionEnabled, setIsAutoSelectionEnabled] = useState(true);
   const [completed, setCompleted] = useState<CompletionMap>({});
   const [administrator, setAdministrator] = useState<string | null>(null);
   const [administratorStatus, setAdministratorStatus] = useState<
@@ -148,13 +147,9 @@ export function ChecklistApp() {
   }, []);
 
   useEffect(() => {
-    if (!isAutoSelectionEnabled) {
-      return;
-    }
-
     setSelectedWeek(context.currentWeek);
     setSelectedDay(operationalTime.effectiveDayId);
-  }, [context.currentWeek, operationalTime.effectiveDayId, isAutoSelectionEnabled]);
+  }, [context.currentWeek, operationalTime.effectiveDayId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -494,10 +489,7 @@ export function ChecklistApp() {
               <button
                 key={week}
                 className={week === selectedWeek ? "chip chip--active" : "chip"}
-                onClick={() => {
-                  setIsAutoSelectionEnabled(false);
-                  setSelectedWeek(week);
-                }}
+                onClick={() => setSelectedWeek(week)}
                 type="button"
               >
                 {week} н.
@@ -513,10 +505,7 @@ export function ChecklistApp() {
               <button
                 key={day.id}
                 className={day.id === selectedDay ? "chip chip--active" : "chip"}
-                onClick={() => {
-                  setIsAutoSelectionEnabled(false);
-                  setSelectedDay(day.id);
-                }}
+                onClick={() => setSelectedDay(day.id)}
                 type="button"
               >
                 {day.shortTitle}
