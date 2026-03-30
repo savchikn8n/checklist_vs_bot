@@ -9,10 +9,11 @@ import {
   type DayId
 } from "../lib/checklist-data";
 import {
+  addDays,
   formatDate,
   formatMonth,
   getCycleContext,
-  getWeekDatesForSelection
+  startOfDay
 } from "../lib/week-utils";
 import {
   formatDateForApi,
@@ -33,6 +34,28 @@ declare global {
 }
 
 type CompletionMap = Record<string, boolean>;
+type MonthOption = {
+  key: string;
+  label: string;
+  date: Date;
+};
+type DateOption = {
+  key: string;
+  label: string;
+  date: Date;
+  week: number;
+  dayId: DayId;
+};
+
+const DAY_INDEX_TO_ID: Record<number, DayId> = {
+  0: "sunday",
+  1: "monday",
+  2: "tuesday",
+  3: "wednesday",
+  4: "thursday",
+  5: "friday",
+  6: "saturday"
+};
 
 function sortTasks(tasks: ChecklistTemplateTask[]) {
   return [...tasks];
@@ -52,12 +75,12 @@ export function ChecklistApp() {
     () => getOperationalChecklistTime(new Date(currentTimestamp)),
     [currentTimestamp]
   );
-  const context = useMemo(() => getCycleContext(operationalTime.effectiveDate), [operationalTime]);
   const [forcedWatcher, setForcedWatcher] = useState(false);
   const [template, setTemplate] = useState<ChecklistTemplate | null>(null);
   const [templateStatus, setTemplateStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [selectedWeek, setSelectedWeek] = useState<number>(context.currentWeek);
-  const [selectedDay, setSelectedDay] = useState<DayId>(operationalTime.effectiveDayId);
+  const [selectedDate, setSelectedDate] = useState<Date>(operationalTime.effectiveDate);
+  const [isMonthMenuOpen, setIsMonthMenuOpen] = useState(false);
+  const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
   const [completed, setCompleted] = useState<CompletionMap>({});
   const [administrator, setAdministrator] = useState<string | null>(null);
   const [administratorStatus, setAdministratorStatus] = useState<
@@ -72,11 +95,60 @@ export function ChecklistApp() {
   const [lastSyncedProgressSignature, setLastSyncedProgressSignature] = useState("");
   const [watcherBubbleVisible, setWatcherBubbleVisible] = useState(false);
   const [dismissedWatcherKey, setDismissedWatcherKey] = useState<string | null>(null);
+  const context = useMemo(() => getCycleContext(selectedDate), [selectedDate]);
+  const selectedWeek = context.currentWeek;
+  const selectedDay = DAY_INDEX_TO_ID[selectedDate.getDay()];
+  const selectedDateKey = formatDateForApi(selectedDate);
 
-  const selectedWeekDates = useMemo(
-    () => getWeekDatesForSelection(context, selectedWeek),
-    [context, selectedWeek]
-  );
+  const monthOptions = useMemo(() => {
+    return Array.from({ length: 6 }, (_, index) => {
+      const monthDate = new Date(
+        operationalTime.effectiveDate.getFullYear(),
+        operationalTime.effectiveDate.getMonth() - index,
+        1
+      );
+
+      return {
+        key: `${monthDate.getFullYear()}-${monthDate.getMonth()}`,
+        label: formatMonth(monthDate),
+        date: monthDate
+      } satisfies MonthOption;
+    });
+  }, [operationalTime.effectiveDate]);
+
+  const dateOptions = useMemo(() => {
+    const selectedMonthAnchor = new Date(context.cycleYear, context.cycleMonth, 1);
+    const isCurrentCycleMonth =
+      selectedMonthAnchor.getFullYear() === operationalTime.effectiveDate.getFullYear() &&
+      selectedMonthAnchor.getMonth() === operationalTime.effectiveDate.getMonth();
+    const monthLastDate = startOfDay(new Date(context.cycleYear, context.cycleMonth + 1, 0));
+    const maxDate = isCurrentCycleMonth
+      ? startOfDay(operationalTime.effectiveDate)
+      : monthLastDate;
+    const options: DateOption[] = [];
+
+    for (
+      let cursor = startOfDay(context.firstMonday);
+      cursor.getTime() <= maxDate.getTime();
+      cursor = addDays(cursor, 1)
+    ) {
+      const cursorContext = getCycleContext(cursor);
+      options.push({
+        key: formatDateForApi(cursor),
+        label: formatDate(cursor),
+        date: cursor,
+        week: cursorContext.currentWeek,
+        dayId: DAY_INDEX_TO_ID[cursor.getDay()]
+      });
+    }
+
+    return options.reverse();
+  }, [
+    context.cycleMonth,
+    context.cycleYear,
+    context.firstMonday,
+    operationalTime.effectiveDate
+  ]);
 
   const availableDays = useMemo(() => template?.days ?? [], [template]);
 
@@ -115,9 +187,8 @@ export function ChecklistApp() {
       ? activeTasks.filter((task) => completed[task.id]).length / activeTasks.length
       : 1;
   const isComplete = progress === 1;
-  const progressKey = `${formatDateForApi(selectedWeekDates[selectedDay])}:${selectedWeek}:${selectedDay}`;
-  const warningDateLabel = formatDate(selectedWeekDates[selectedDay]);
-  const selectedDate = selectedWeekDates[selectedDay];
+  const progressKey = `${selectedDateKey}:${selectedWeek}:${selectedDay}`;
+  const warningDateLabel = formatDate(selectedDate);
   const isViewingOperationalDay = isSameCalendarDay(selectedDate, operationalTime.effectiveDate);
   const isViewingPreviousDay = selectedDate.getTime() < operationalTime.effectiveDate.getTime();
 
@@ -147,9 +218,17 @@ export function ChecklistApp() {
   }, []);
 
   useEffect(() => {
-    setSelectedWeek(context.currentWeek);
-    setSelectedDay(operationalTime.effectiveDayId);
-  }, [context.currentWeek, operationalTime.effectiveDayId]);
+    setSelectedDate((current) => {
+      if (
+        current.getFullYear() === operationalTime.effectiveDate.getFullYear() &&
+        current.getMonth() === operationalTime.effectiveDate.getMonth()
+      ) {
+        return operationalTime.effectiveDate;
+      }
+
+      return current;
+    });
+  }, [operationalTime.effectiveDate]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -184,18 +263,6 @@ export function ChecklistApp() {
     return () => controller.abort();
   }, []);
 
-  useEffect(() => {
-    if (!availableDays.length) {
-      return;
-    }
-
-    const hasSelectedDay = availableDays.some((day) => day.id === selectedDay);
-
-    if (!hasSelectedDay) {
-      setSelectedDay(availableDays[0].id);
-    }
-  }, [availableDays, selectedDay]);
-
   function toggleTask(taskId: string) {
     setCompleted((current) => ({
       ...current,
@@ -208,12 +275,11 @@ export function ChecklistApp() {
       return;
     }
 
-    const selectedDate = formatDateForApi(selectedWeekDates[selectedDay]);
     const controller = new AbortController();
 
     setAdministratorStatus("loading");
 
-    fetch(`/api/admin-on-duty?date=${selectedDate}`, {
+    fetch(`/api/admin-on-duty?date=${selectedDateKey}`, {
       signal: controller.signal,
       cache: "no-store"
     })
@@ -251,20 +317,19 @@ export function ChecklistApp() {
       });
 
     return () => controller.abort();
-  }, [currentDay, selectedDay, selectedWeekDates]);
+  }, [currentDay, selectedDateKey]);
 
   useEffect(() => {
     if (!currentDay) {
       return;
     }
 
-    const selectedDate = formatDateForApi(selectedWeekDates[selectedDay]);
     const controller = new AbortController();
 
     setProgressStatus("loading");
 
     fetch(
-      `/api/checklist-progress?date=${selectedDate}&week=${selectedWeek}&dayId=${selectedDay}`,
+      `/api/checklist-progress?date=${selectedDateKey}&week=${selectedWeek}&dayId=${selectedDay}`,
       {
         signal: controller.signal,
         cache: "no-store"
@@ -316,7 +381,7 @@ export function ChecklistApp() {
       });
 
     return () => controller.abort();
-  }, [currentDay, progressKey, selectedDay, selectedWeek, selectedWeekDates]);
+  }, [currentDay, progressKey, selectedDateKey, selectedDay, selectedWeek]);
 
   useEffect(() => {
     if (loadedProgressKey !== progressKey || progressStatus === "loading") {
@@ -344,7 +409,7 @@ export function ChecklistApp() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        checklistDate: formatDateForApi(selectedWeekDates[selectedDay]),
+        checklistDate: selectedDateKey,
         weekCycle: selectedWeek,
         dayId: selectedDay,
         completedTaskIds,
@@ -366,9 +431,9 @@ export function ChecklistApp() {
     progress,
     progressKey,
     progressStatus,
+    selectedDateKey,
     selectedDay,
-    selectedWeek,
-    selectedWeekDates
+    selectedWeek
   ]);
 
   useEffect(() => {
@@ -435,17 +500,76 @@ export function ChecklistApp() {
           ) : null}
         </div>
         <div className="hero-meta hero-meta--compact">
-          <div>
+          <div className="hero-meta-select">
             <span>Месяц цикла</span>
-            <strong>
-              {formatMonth(
-                new Date(context.cycleYear, context.cycleMonth, 1)
-              )}
-            </strong>
+            <button
+              className={isMonthMenuOpen ? "meta-select-button meta-select-button--open" : "meta-select-button"}
+              onClick={() => {
+                setIsMonthMenuOpen((current) => !current);
+                setIsDateMenuOpen(false);
+              }}
+              type="button"
+            >
+              <strong>{formatMonth(new Date(context.cycleYear, context.cycleMonth, 1))}</strong>
+              <span className="meta-select-arrow" aria-hidden="true">▾</span>
+            </button>
+            {isMonthMenuOpen ? (
+              <div className="meta-select-menu">
+                {monthOptions.map((option) => (
+                  <button
+                    className="meta-select-option"
+                    key={option.key}
+                    onClick={() => {
+                      const monthLastDate = startOfDay(
+                        new Date(option.date.getFullYear(), option.date.getMonth() + 1, 0)
+                      );
+                      const nextDate =
+                        option.date.getFullYear() === operationalTime.effectiveDate.getFullYear() &&
+                        option.date.getMonth() === operationalTime.effectiveDate.getMonth()
+                          ? operationalTime.effectiveDate
+                          : monthLastDate;
+
+                      setSelectedDate(nextDate);
+                      setIsMonthMenuOpen(false);
+                    }}
+                    type="button"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
-          <div>
+          <div className="hero-meta-select">
             <span>Дата дня</span>
-            <strong>{formatDate(selectedWeekDates[selectedDay])}</strong>
+            <button
+              className={isDateMenuOpen ? "meta-select-button meta-select-button--open" : "meta-select-button"}
+              onClick={() => {
+                setIsDateMenuOpen((current) => !current);
+                setIsMonthMenuOpen(false);
+              }}
+              type="button"
+            >
+              <strong>{formatDate(selectedDate)}</strong>
+              <span className="meta-select-arrow" aria-hidden="true">▾</span>
+            </button>
+            {isDateMenuOpen ? (
+              <div className="meta-select-menu">
+                {dateOptions.map((option) => (
+                  <button
+                    className="meta-select-option"
+                    key={option.key}
+                    onClick={() => {
+                      setSelectedDate(option.date);
+                      setIsDateMenuOpen(false);
+                    }}
+                    type="button"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
         <div
@@ -486,14 +610,12 @@ export function ChecklistApp() {
           <span className="control-title">Неделя цикла</span>
           <div className="chip-row">
             {WEEK_OPTIONS.map((week) => (
-              <button
+              <div
                 key={week}
                 className={week === selectedWeek ? "chip chip--active" : "chip"}
-                onClick={() => setSelectedWeek(week)}
-                type="button"
               >
                 {week} н.
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -502,14 +624,12 @@ export function ChecklistApp() {
           <span className="control-title">День недели</span>
           <div className="chip-row">
             {availableDays.map((day) => (
-              <button
+              <div
                 key={day.id}
                 className={day.id === selectedDay ? "chip chip--active" : "chip"}
-                onClick={() => setSelectedDay(day.id)}
-                type="button"
               >
                 {day.shortTitle}
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -521,7 +641,7 @@ export function ChecklistApp() {
             <p className="section-kicker">Активные задачи</p>
             <h2>{currentDay?.title ?? "Загрузка..."}</h2>
           </div>
-          <span className="section-date">{formatDate(selectedWeekDates[selectedDay])}</span>
+          <span className="section-date">{formatDate(selectedDate)}</span>
         </div>
 
         {templateStatus === "loading" ? (
