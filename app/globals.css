@@ -51,7 +51,15 @@ input {
 }
 
 .hero-card {
+  position: relative;
+  z-index: 10;
   padding: 26px;
+}
+
+.controls-card,
+.tasks-card {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-admin {
@@ -147,10 +155,10 @@ input {
   top: calc(100% + 10px);
   left: 0;
   right: 0;
-  z-index: 6;
+  z-index: 30;
   display: grid;
   gap: 6px;
-  max-height: 220px;
+  max-height: 196px;
   overflow: auto;
   padding: 10px;
   border: 1px solid var(--line);
