@@ -4,6 +4,7 @@ export type CycleContext = {
   cycleYear: number;
   cycleMonth: number;
   firstMonday: Date;
+  rawWeek: number;
   currentWeek: number;
   weekStart: Date;
   weekDates: Record<DayId, Date>;
@@ -65,6 +66,7 @@ export function getCycleContext(inputDate = new Date()): CycleContext {
     cycleYear: year,
     cycleMonth: month,
     firstMonday,
+    rawWeek,
     currentWeek,
     weekStart,
     weekDates: buildWeekDates(weekStart),
@@ -73,7 +75,9 @@ export function getCycleContext(inputDate = new Date()): CycleContext {
 }
 
 export function getWeekStartForSelection(context: CycleContext, week: number) {
-  return addDays(context.firstMonday, (week - 1) * 7);
+  const normalizedOffset = (context.currentWeek - week + 4) % 4;
+  const targetRawWeek = Math.max(0, context.rawWeek - normalizedOffset);
+  return addDays(context.firstMonday, targetRawWeek * 7);
 }
 
 export function getWeekDatesForSelection(context: CycleContext, week: number) {
