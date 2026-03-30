@@ -308,7 +308,12 @@ input {
   position: fixed;
   inset: 0;
   z-index: 40;
-  pointer-events: none;
+  pointer-events: auto;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
 }
 
 .watcher-backdrop {
@@ -389,6 +394,16 @@ input {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.35;
+}
+
+.watcher-toast__close {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(30, 16, 20, 0.14);
+  border-radius: 999px;
+  background: #fff8f1;
+  color: var(--ink);
+  cursor: pointer;
 }
 
 @keyframes watcher-fade-in {
@@ -520,6 +535,12 @@ input {
 
   .watcher-toast__bubble span {
     margin-top: 8px;
+    font-size: 12px;
+  }
+
+  .watcher-toast__close {
+    margin-top: 12px;
+    padding: 8px 12px;
     font-size: 12px;
   }
 }

@@ -47,13 +47,18 @@ function isSameCalendarDay(left: Date, right: Date) {
 }
 
 export function ChecklistApp() {
-  const operationalTime = useMemo(() => getOperationalChecklistTime(), []);
+  const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
+  const operationalTime = useMemo(
+    () => getOperationalChecklistTime(new Date(currentTimestamp)),
+    [currentTimestamp]
+  );
   const context = useMemo(() => getCycleContext(operationalTime.effectiveDate), [operationalTime]);
   const [forcedWatcher, setForcedWatcher] = useState(false);
   const [template, setTemplate] = useState<ChecklistTemplate | null>(null);
   const [templateStatus, setTemplateStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedWeek, setSelectedWeek] = useState<number>(context.currentWeek);
   const [selectedDay, setSelectedDay] = useState<DayId>(operationalTime.effectiveDayId);
+  const [isAutoSelectionEnabled, setIsAutoSelectionEnabled] = useState(true);
   const [completed, setCompleted] = useState<CompletionMap>({});
   const [administrator, setAdministrator] = useState<string | null>(null);
   const [administratorStatus, setAdministratorStatus] = useState<
@@ -67,6 +72,7 @@ export function ChecklistApp() {
   const [loadedProgressKey, setLoadedProgressKey] = useState("");
   const [lastSyncedProgressSignature, setLastSyncedProgressSignature] = useState("");
   const [watcherBubbleVisible, setWatcherBubbleVisible] = useState(false);
+  const [dismissedWatcherKey, setDismissedWatcherKey] = useState<string | null>(null);
 
   const selectedWeekDates = useMemo(
     () => getWeekDatesForSelection(context, selectedWeek),
@@ -125,6 +131,16 @@ export function ChecklistApp() {
   }, []);
 
   useEffect(() => {
+    setCurrentTimestamp(Date.now());
+
+    const intervalId = window.setInterval(() => {
+      setCurrentTimestamp(Date.now());
+    }, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     setForcedWatcher(
       searchParams.get("forceWatcher") === "1" || searchParams.get("watcher") === "1"
@@ -132,9 +148,13 @@ export function ChecklistApp() {
   }, []);
 
   useEffect(() => {
+    if (!isAutoSelectionEnabled) {
+      return;
+    }
+
     setSelectedWeek(context.currentWeek);
     setSelectedDay(operationalTime.effectiveDayId);
-  }, [context.currentWeek, operationalTime.effectiveDayId]);
+  }, [context.currentWeek, operationalTime.effectiveDayId, isAutoSelectionEnabled]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -363,13 +383,14 @@ export function ChecklistApp() {
   }, [activeTasks.length, isComplete, isProgressReady]);
 
   const showWatcher =
-    forcedWatcher ||
-    (isProgressReady &&
-      progress < 1 &&
-      ((isViewingOperationalDay &&
-        operationalTime.isAfterWarningThreshold &&
-        operationalTime.isBeforeCutoff) ||
-        isViewingPreviousDay));
+    dismissedWatcherKey !== progressKey &&
+    (forcedWatcher ||
+      (isProgressReady &&
+        progress < 1 &&
+        ((isViewingOperationalDay &&
+          operationalTime.isAfterWarningThreshold &&
+          operationalTime.isBeforeCutoff) ||
+          isViewingPreviousDay)));
 
   useEffect(() => {
     if (!showWatcher) {
@@ -383,6 +404,17 @@ export function ChecklistApp() {
 
     return () => window.clearTimeout(timeoutId);
   }, [showWatcher, progressKey]);
+
+  useEffect(() => {
+    if (progress >= 1 && dismissedWatcherKey === progressKey) {
+      setDismissedWatcherKey(null);
+    }
+  }, [dismissedWatcherKey, progress, progressKey]);
+
+  function closeWatcher() {
+    setDismissedWatcherKey(progressKey);
+    setWatcherBubbleVisible(false);
+  }
 
   return (
     <main className="app-shell">
@@ -462,7 +494,10 @@ export function ChecklistApp() {
               <button
                 key={week}
                 className={week === selectedWeek ? "chip chip--active" : "chip"}
-                onClick={() => setSelectedWeek(week)}
+                onClick={() => {
+                  setIsAutoSelectionEnabled(false);
+                  setSelectedWeek(week);
+                }}
                 type="button"
               >
                 {week} н.
@@ -478,7 +513,10 @@ export function ChecklistApp() {
               <button
                 key={day.id}
                 className={day.id === selectedDay ? "chip chip--active" : "chip"}
-                onClick={() => setSelectedDay(day.id)}
+                onClick={() => {
+                  setIsAutoSelectionEnabled(false);
+                  setSelectedDay(day.id);
+                }}
                 type="button"
               >
                 {day.shortTitle}
@@ -540,7 +578,18 @@ export function ChecklistApp() {
       </section>
 
       {showWatcher ? (
-        <div className="watcher-overlay" aria-live="polite">
+        <div
+          className="watcher-overlay"
+          aria-live="polite"
+          onClick={closeWatcher}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              closeWatcher();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
           <div className="watcher-backdrop" />
           <div className="watcher-scene">
             <div className="watcher-toast">
@@ -556,9 +605,13 @@ export function ChecklistApp() {
                   ? "watcher-toast__bubble watcher-toast__bubble--visible"
                   : "watcher-toast__bubble"
               }
+              onClick={(event) => event.stopPropagation()}
             >
               <strong>А чеклист за тебя кто делать будет?</strong>
               <span>Чеклист за {warningDateLabel} еще не закрыт.</span>
+              <button className="watcher-toast__close" onClick={closeWatcher} type="button">
+                Закрыть
+              </button>
             </div>
           </div>
         </div>
