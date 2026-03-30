@@ -38,6 +38,14 @@ function sortTasks(tasks: ChecklistTemplateTask[]) {
   return [...tasks];
 }
 
+function isSameCalendarDay(left: Date, right: Date) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+
 export function ChecklistApp() {
   const operationalTime = useMemo(() => getOperationalChecklistTime(), []);
   const context = useMemo(() => getCycleContext(operationalTime.effectiveDate), [operationalTime]);
@@ -58,6 +66,7 @@ export function ChecklistApp() {
   );
   const [loadedProgressKey, setLoadedProgressKey] = useState("");
   const [lastSyncedProgressSignature, setLastSyncedProgressSignature] = useState("");
+  const [watcherBubbleVisible, setWatcherBubbleVisible] = useState(false);
 
   const selectedWeekDates = useMemo(
     () => getWeekDatesForSelection(context, selectedWeek),
@@ -103,6 +112,9 @@ export function ChecklistApp() {
   const isComplete = progress === 1;
   const progressKey = `${formatDateForApi(selectedWeekDates[selectedDay])}:${selectedWeek}:${selectedDay}`;
   const warningDateLabel = formatDate(selectedWeekDates[selectedDay]);
+  const selectedDate = selectedWeekDates[selectedDay];
+  const isViewingOperationalDay = isSameCalendarDay(selectedDate, operationalTime.effectiveDate);
+  const isViewingPreviousDay = selectedDate.getTime() < operationalTime.effectiveDate.getTime();
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -354,8 +366,23 @@ export function ChecklistApp() {
     forcedWatcher ||
     (isProgressReady &&
       progress < 1 &&
-      operationalTime.isAfterWarningThreshold &&
-      operationalTime.isBeforeCutoff);
+      ((isViewingOperationalDay &&
+        operationalTime.isAfterWarningThreshold &&
+        operationalTime.isBeforeCutoff) ||
+        isViewingPreviousDay));
+
+  useEffect(() => {
+    if (!showWatcher) {
+      setWatcherBubbleVisible(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setWatcherBubbleVisible(true);
+    }, 460);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [showWatcher, progressKey]);
 
   return (
     <main className="app-shell">
@@ -513,15 +540,26 @@ export function ChecklistApp() {
       </section>
 
       {showWatcher ? (
-        <div className="watcher-toast" aria-live="polite">
-          <img
-            alt="Следящая Медуза"
-            className="watcher-toast__image"
-            src="/watcher-medusa.png"
-          />
-          <div className="watcher-toast__bubble">
-            <strong>Я слежу за тобой</strong>
-            <span>Чеклист за {warningDateLabel} еще не закрыт.</span>
+        <div className="watcher-overlay" aria-live="polite">
+          <div className="watcher-backdrop" />
+          <div className="watcher-scene">
+            <div className="watcher-toast">
+              <img
+                alt="Следящая Медуза"
+                className="watcher-toast__image"
+                src="/watcher-medusa.png"
+              />
+            </div>
+            <div
+              className={
+                watcherBubbleVisible
+                  ? "watcher-toast__bubble watcher-toast__bubble--visible"
+                  : "watcher-toast__bubble"
+              }
+            >
+              <strong>А чеклист за тебя кто делать будет?</strong>
+              <span>Чеклист за {warningDateLabel} еще не закрыт.</span>
+            </div>
           </div>
         </div>
       ) : null}
