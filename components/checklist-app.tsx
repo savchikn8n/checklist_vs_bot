@@ -99,6 +99,10 @@ export function ChecklistApp() {
   const selectedWeek = context.currentWeek;
   const selectedDay = DAY_INDEX_TO_ID[selectedDate.getDay()];
   const selectedDateKey = formatDateForApi(selectedDate);
+  const selectedCalendarMonthDate = useMemo(
+    () => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1),
+    [selectedDate]
+  );
 
   const monthOptions = useMemo(() => {
     return Array.from({ length: 6 }, (_, index) => {
@@ -117,18 +121,20 @@ export function ChecklistApp() {
   }, [operationalTime.effectiveDate]);
 
   const dateOptions = useMemo(() => {
-    const selectedMonthAnchor = new Date(context.cycleYear, context.cycleMonth, 1);
+    const selectedMonthAnchor = selectedCalendarMonthDate;
     const isCurrentCycleMonth =
       selectedMonthAnchor.getFullYear() === operationalTime.effectiveDate.getFullYear() &&
       selectedMonthAnchor.getMonth() === operationalTime.effectiveDate.getMonth();
-    const monthLastDate = startOfDay(new Date(context.cycleYear, context.cycleMonth + 1, 0));
+    const monthLastDate = startOfDay(
+      new Date(selectedMonthAnchor.getFullYear(), selectedMonthAnchor.getMonth() + 1, 0)
+    );
     const maxDate = isCurrentCycleMonth
       ? startOfDay(operationalTime.effectiveDate)
       : monthLastDate;
     const options: DateOption[] = [];
 
     for (
-      let cursor = startOfDay(context.firstMonday);
+      let cursor = startOfDay(selectedMonthAnchor);
       cursor.getTime() <= maxDate.getTime();
       cursor = addDays(cursor, 1)
     ) {
@@ -143,12 +149,7 @@ export function ChecklistApp() {
     }
 
     return options.reverse();
-  }, [
-    context.cycleMonth,
-    context.cycleYear,
-    context.firstMonday,
-    operationalTime.effectiveDate
-  ]);
+  }, [operationalTime.effectiveDate, selectedCalendarMonthDate]);
 
   const availableDays = useMemo(() => template?.days ?? [], [template]);
 
@@ -510,7 +511,7 @@ export function ChecklistApp() {
               }}
               type="button"
             >
-              <strong>{formatMonth(new Date(context.cycleYear, context.cycleMonth, 1))}</strong>
+              <strong>{formatMonth(selectedCalendarMonthDate)}</strong>
               <span className="meta-select-arrow" aria-hidden="true">▾</span>
             </button>
             {isMonthMenuOpen ? (
